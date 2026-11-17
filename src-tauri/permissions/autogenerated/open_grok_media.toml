@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-open-grok-media"
+description = "Enables the open_grok_media command without any pre-configured scope."
+commands.allow = ["open_grok_media"]
+
+[[permission]]
+identifier = "deny-open-grok-media"
+description = "Denies the open_grok_media command without any pre-configured scope."
+commands.deny = ["open_grok_media"]

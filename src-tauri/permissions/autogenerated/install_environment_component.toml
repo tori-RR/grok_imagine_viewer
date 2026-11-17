@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-install-environment-component"
+description = "Enables the install_environment_component command without any pre-configured scope."
+commands.allow = ["install_environment_component"]
+
+[[permission]]
+identifier = "deny-install-environment-component"
+description = "Denies the install_environment_component command without any pre-configured scope."
+commands.deny = ["install_environment_component"]

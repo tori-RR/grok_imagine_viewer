@@ -1,0 +1,29 @@
+{
+  "name": "grok-imagine-viewer",
+  "productName": "Grok Imagine Viewer",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Local Imagine gallery viewer with a Tauri desktop shell.",
+  "author": "local",
+  "license": "UNLICENSED",
+  "scripts": {
+    "start": "node scripts/tauri-cli-local.mjs dev",
+    "test": "npm run test:frontend && npm run test:python && npm run test:tauri",
+    "test:frontend": "node --check static/i18n.js && node --check static/locales/en.js && node tests/i18n_behavior.mjs && node --experimental-strip-types tests/download_result_contract.mts && node --check static/environment.js && node tests/environment_behavior.mjs && node tests/environment_preview_behavior.mjs && node tests/environment_installer.mjs && node --check static/app.js && node tests/frontend_behavior.mjs && node tests/gpt6pro_behavior.mjs && node tests/ab_loop_behavior.mjs && node tests/player_layout_behavior.mjs && node tests/media_probe_behavior.mjs && node --check static/player-settings.js && node tests/player_settings.mjs && node tests/settings_async_behavior.mjs && node tests/browser_navigation.mjs && node tests/save_directory_navigation.mjs && node tests/review_behavior.mjs && node tests/interaction_performance.mjs && node tests/download_prompt_behavior.mjs",
+    "test:python": "node scripts/run-python-tests.mjs",
+    "test:tauri": "node --check scripts/cargo-local.mjs && node --check scripts/tauri-cli-local.mjs && node --check scripts/tauri-stage-local.mjs && node --check scripts/pack_desktop_test.mjs && node tests/desktop_pack_behavior.mjs && node scripts/tauri-stage-smoke.mjs && node scripts/cargo-local.mjs test --manifest-path src-tauri/Cargo.toml",
+    "tauri:dev": "node scripts/tauri-cli-local.mjs dev",
+    "tauri:build": "node scripts/tauri-cli-local.mjs build",
+    "pack:desktop": "node scripts/pack_desktop_test.mjs",
+    "pack:release": "node scripts/pack_desktop_test.mjs --portable",
+    "pack:environment-preview": "node scripts/pack_desktop_test.mjs --portable --environment-preview",
+    "tauri:info": "node scripts/tauri-cli-local.mjs info",
+    "pack:stack-evo": "node scripts/pack-stack-evo.mjs",
+    "test:go": "cd backend-go && go test -count=1 ./...",
+    "tauri:dev:stack-evo": "node scripts/stack-evo-assets.mjs && node scripts/tauri-cli-local.mjs dev",
+    "tauri:build:stack-evo": "node scripts/stack-evo-assets.mjs && node scripts/tauri-cli-local.mjs build"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "2.11.4"
+  }
+}

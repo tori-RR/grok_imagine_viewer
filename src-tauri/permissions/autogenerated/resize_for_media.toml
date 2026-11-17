@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-resize-for-media"
+description = "Enables the resize_for_media command without any pre-configured scope."
+commands.allow = ["resize_for_media"]
+
+[[permission]]
+identifier = "deny-resize-for-media"
+description = "Denies the resize_for_media command without any pre-configured scope."
+commands.deny = ["resize_for_media"]

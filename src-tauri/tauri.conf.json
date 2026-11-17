@@ -1,0 +1,27 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "Grok Imagine Viewer",
+  "version": "0.1.0",
+  "identifier": "com.tori-rr.grok-imagine-viewer.tauri",
+  "build": {
+    "frontendDist": "../frontend-react/dist"
+  },
+  "app": {
+    "windows": [],
+    "security": {
+      "csp": null
+    }
+  },
+  "bundle": {
+    "active": false,
+    "icon": [
+      "../grok_imagine_viewer.ico"
+    ],
+    "resources": {
+      "../backend-go/bin/giv-backend.exe": "viewer/giv-backend.exe",
+      "../scripts/install-environment.ps1": "viewer/install-environment.ps1",
+      "../frontend-react/dist/": "viewer/static/",
+      "../grok_imagine_viewer.ico": "viewer/grok_imagine_viewer.ico"
+    }
+  }
+}

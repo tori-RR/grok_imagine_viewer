@@ -1,0 +1,142 @@
+[
+  {
+    "name": "published-persisted",
+    "valid": true,
+    "result": {
+      "resultVersion": 1,
+      "ok": true,
+      "stopped": false,
+      "published": true,
+      "historyState": "persisted",
+      "warnings": [],
+      "counts": {
+        "total": 1,
+        "attempted": 1,
+        "succeeded": 1,
+        "failed": 0,
+        "skipped": 0
+      },
+      "failures": []
+    }
+  },
+  {
+    "name": "published-history-pending",
+    "valid": true,
+    "result": {
+      "resultVersion": 1,
+      "ok": true,
+      "stopped": false,
+      "published": true,
+      "historyState": "pending",
+      "warnings": [
+        "history_persistence_pending"
+      ],
+      "counts": {
+        "total": 1,
+        "attempted": 1,
+        "succeeded": 1,
+        "failed": 0,
+        "skipped": 0
+      },
+      "failures": []
+    }
+  },
+  {
+    "name": "recovered-published-stop",
+    "valid": true,
+    "result": {
+      "resultVersion": 1,
+      "ok": false,
+      "stopped": true,
+      "published": true,
+      "historyState": "unavailable",
+      "warnings": [
+        "history_persistence_pending"
+      ],
+      "counts": {
+        "total": 1,
+        "attempted": 1,
+        "succeeded": 1,
+        "failed": 0,
+        "skipped": 0
+      },
+      "failures": []
+    }
+  },
+  {
+    "name": "invalid-resultVersion",
+    "valid": false,
+    "result": {
+      "resultVersion": 2,
+      "ok": true,
+      "stopped": false,
+      "published": true,
+      "historyState": "persisted",
+      "warnings": [],
+      "counts": {
+        "total": 1,
+        "attempted": 1,
+        "succeeded": 1,
+        "failed": 0,
+        "skipped": 0
+      },
+      "failures": []
+    }
+  },
+  {
+    "name": "invalid-historyState",
+    "valid": false,
+    "result": {
+      "resultVersion": 1,
+      "ok": true,
+      "stopped": false,
+      "published": true,
+      "historyState": null,
+      "warnings": [],
+      "counts": {
+        "total": 1,
+        "attempted": 1,
+        "succeeded": 1,
+        "failed": 0,
+        "skipped": 0
+      },
+      "failures": []
+    }
+  },
+  {
+    "name": "invalid-warnings",
+    "valid": false,
+    "result": {
+      "resultVersion": 1,
+      "ok": true,
+      "stopped": false,
+      "published": true,
+      "historyState": "persisted",
+      "warnings": [
+        "untrusted raw detail"
+      ],
+      "counts": {
+        "total": 1,
+        "attempted": 1,
+        "succeeded": 1,
+        "failed": 0,
+        "skipped": 0
+      },
+      "failures": []
+    }
+  },
+  {
+    "name": "invalid-counts",
+    "valid": false,
+    "result": {
+      "resultVersion": 1,
+      "ok": true,
+      "stopped": false,
+      "published": true,
+      "historyState": "persisted",
+      "warnings": [],
+      "counts": {},
+      "failures": []
+    }
+  }
+]

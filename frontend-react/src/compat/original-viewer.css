@@ -1,0 +1,6 @@
+/* Keep the compatibility document in the original body/main flex layout.
+   A block root lets the scroller grow to the whole wall and defeats virtualization.
+   This wrapper has no semantic role; keep interactive semantics on its children. */
+#root {
+  display: contents;
+}

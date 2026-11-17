@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-set-grok-muted"
+description = "Enables the set_grok_muted command without any pre-configured scope."
+commands.allow = ["set_grok_muted"]
+
+[[permission]]
+identifier = "deny-set-grok-muted"
+description = "Denies the set_grok_muted command without any pre-configured scope."
+commands.deny = ["set_grok_muted"]

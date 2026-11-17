@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title data-i18n="Imagine 图库">Imagine 图库</title>
+  <link rel="icon" href="/favicon.ico" type="image/x-icon">
+  <link rel="stylesheet" href="/static/style.css">
+  <link rel="stylesheet" href="/static/player.css">
+  <script src="/static/locales/en.js"></script>
+  <script src="/static/i18n.js"></script>
+</head>
+<body>
+  <header class="top" id="topBar">
+    <div class="nav-row">
+      <div class="nav-left launcher-hidden">
+        <div class="cat-wrap">
+          <button type="button" id="plusBtn" class="nav-circle plus" title="点击打开图库；悬停、长按或按 ↓ 查看最近图库" data-i18n-title="点击打开图库；悬停、长按或按 ↓ 查看最近图库"
+                  aria-label="打开图库；悬停、长按或按向下键查看最近图库" data-i18n-aria-label="打开图库；悬停、长按或按向下键查看最近图库" aria-haspopup="true" aria-controls="plusMenu" aria-expanded="false">+</button>
+          <div id="plusMenu" class="cat-menu menu-left" hidden></div>
+        </div>
+        <div class="mode-pills" role="group" aria-label="模式" data-i18n-aria-label="模式">
+          <button type="button" id="modeGallery" class="pill mode-pill active" data-mode="gallery" data-i18n="图库">图库</button>
+          <button type="button" id="modeGrok" class="pill mode-pill" data-mode="grok">Grok</button>
+        </div>
+        <button type="button" id="dlBtn" class="pill dl-btn" title="下载" data-i18n-title="下载" aria-label="下载" data-i18n-aria-label="下载">
+          <span id="dlLabel" data-i18n="下载">下载</span>
+          <svg id="dlRing" class="dl-ring" viewBox="0 0 36 36" hidden aria-hidden="true">
+            <circle class="dl-track" cx="18" cy="18" r="14"></circle>
+            <circle id="dlArc" class="dl-arc" cx="18" cy="18" r="14"></circle>
+          </svg>
+          <span id="dlStop" class="dl-stop" hidden aria-hidden="true"></span>
+          <svg id="dlDone" class="dl-done" viewBox="0 0 36 36" hidden aria-hidden="true">
+            <path class="dl-check" d="M11 18.8 L16.2 24 L25.4 13.2"></path>
+          </svg>
+        </button>
+        <button id="dlDetails" type="button" class="pill" hidden data-i18n="失败详情">失败详情</button>
+        <button id="downloadHistoryBtn" type="button" class="pill" data-i18n="下载历史">下载历史</button>
+        <div id="catPills" class="cat-pills local-only" aria-label="筛选" data-i18n-aria-label="筛选"></div>
+      </div>
+      <div class="nav-right">
+        <div class="cat-wrap local-only">
+          <button type="button" id="viewBtn" class="pill" aria-haspopup="true" aria-expanded="false" data-i18n="查看">查看</button>
+          <div id="viewMenu" class="cat-menu view-menu" hidden></div>
+        </div>
+        <button type="button" id="selectBtn" class="pill local-only" title="多选" data-i18n-title="多选" data-i18n="选择">选择</button>
+        <div id="searchWrap" class="search-wrap local-only">
+          <input id="searchInput" type="search" placeholder="搜索所有创作" data-i18n-placeholder="搜索所有创作" autocomplete="off" tabindex="-1">
+          <button type="button" id="searchClear" class="search-clear" aria-label="清除搜索" data-i18n-aria-label="清除搜索" hidden>×</button>
+          <button type="button" id="searchBtn" class="nav-circle" title="搜索" data-i18n-title="搜索" aria-label="搜索" data-i18n-aria-label="搜索"></button>
+        </div>
+        <div class="volume-wrap">
+          <button type="button" id="volBtn" class="nav-circle launcher-hidden" title="静音 / 取消静音" data-i18n-title="静音 / 取消静音" aria-label="静音开关" data-i18n-aria-label="静音开关"></button>
+          <label class="launcher-language" for="launcherLanguage" title="界面语言" data-i18n-title="界面语言">
+            <svg class="lucide lucide-languages" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="m5 8 6 6"></path><path d="m4 14 6-6 2-3"></path><path d="M2 5h12"></path>
+              <path d="M7 2h1"></path><path d="m22 22-5-10-5 10"></path><path d="M14 18h6"></path>
+            </svg>
+            <select id="launcherLanguage" data-language-select aria-label="界面语言" data-i18n-aria-label="界面语言" disabled>
+              <option value="auto" data-i18n="跟随系统">跟随系统</option><option value="zh-CN" lang="zh-CN">简体中文</option><option value="en" lang="en">English</option>
+            </select>
+          </label>
+          <button id="settingsBtn" type="button" class="nav-circle" title="设置" data-i18n-title="设置" aria-label="设置" data-i18n-aria-label="设置"></button>
+
+        </div>
+      </div>
+    </div>
+    <div id="status" class="status launcher-hidden" hidden></div>
+  </header>
+
+  <div id="selBar" class="sel-bar" hidden>
+    <button type="button" id="selDone" class="sel-x" aria-label="退出多选" data-i18n-aria-label="退出多选" title="退出多选" data-i18n-title="退出多选">×</button>
+    <span id="selCount" class="sel-count" data-i18n="已选择 0 项">已选择 0 项</span>
+    <div id="selProgress" class="sel-progress" hidden>
+      <span id="selProgressTrack" class="sel-progress-track" aria-hidden="true"><i id="selProgressFill"></i></span>
+      <span id="selProgressText" class="sel-progress-text"></span>
+    </div>
+    <button type="button" id="selAll" data-i18n="全选">全选</button>
+    <div class="cat-wrap">
+      <button type="button" id="selTag" data-i18n="添加到标签">添加到标签</button>
+      <div id="selTagMenu" class="cat-menu sel-tag-menu" hidden></div>
+    </div>
+    <div class="cat-wrap">
+      <button type="button" id="selUntag" data-i18n="从标签移除">从标签移除</button>
+      <div id="selUntagMenu" class="cat-menu sel-tag-menu" hidden></div>
+    </div>
+    <button type="button" id="selRestore" hidden data-i18n="恢复">恢复</button>
+    <button type="button" id="selPurge" class="danger" hidden data-i18n="彻底删除">彻底删除</button>
+    <button type="button" id="selDelete" class="danger" data-i18n="删除">删除</button>
+  </div>
+
+  <main id="main"></main>
+
+  <section id="grokGuest" class="grok-guest" hidden>
+    <div class="grok-guest-card">
+      <h2 id="grokGuestTitle" data-i18n="Grok 登录">Grok 登录</h2>
+      <p id="grokGuestText" data-i18n="登录在应用内独立的 WebView 中，不使用日常浏览器的登录资料。">登录在应用内独立的 WebView 中，不使用日常浏览器的登录资料。</p>
+      <button type="button" id="grokGuestOpen" class="primary" data-i18n="重新打开 Grok">重新打开 Grok</button>
+    </div>
+  </section>
+
+  <div id="launcher" class="launcher" hidden>
+    <canvas id="launcherStarfield" class="launcher-starfield" aria-hidden="true"></canvas>
+    <div class="launcher-card">
+      <h1 class="launcher-title" data-i18n="Imagine 图库">Imagine 图库</h1>
+      <p class="launcher-sub" data-i18n="使用 Imagine Viewer 前，先点击下方按钮打开或新建本地图库吧">使用 Imagine Viewer 前，先点击下方按钮打开或新建本地图库吧</p>
+      <div class="launcher-actions">
+        <button type="button" id="launcherOpen" class="primary launcher-open" data-i18n="打开图库">打开图库</button>
+      </div>
+      <p id="launcherHint" class="launcher-hint" hidden data-i18n="最近打开">最近打开</p>
+      <ul id="launcherHistory" class="launcher-history"></ul>
+      <button type="button" id="launcherHistoryClear" class="history-clear" hidden data-i18n="清除图库历史">清除图库历史</button>
+      <p id="launcherError" class="error" hidden></p>
+      <section id="environmentPanel" class="environment-panel" aria-labelledby="environmentTitle" hidden>
+        <div class="environment-heading">
+          <h2 id="environmentTitle"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 8v4m0 4h.01"/></svg><span id="environmentHeading" data-i18n="缺失环境">缺失环境</span></h2>
+          <button type="button" id="environmentRefresh" class="environment-refresh" data-i18n="重新检测">重新检测</button>
+        </div>
+        <ul id="environmentComponents" class="environment-components"></ul>
+        <p id="environmentMessage" class="environment-message" role="status" aria-live="polite"></p>
+      </section>
+    </div>
+  </div>
+
+  <div id="loading" class="loading-veil" hidden>
+    <div class="spinner" aria-hidden="true"></div>
+    <div id="loadingText" class="loading-text" data-i18n="载入中…">载入中…</div>
+  </div>
+
+  <div id="browser" class="modal" hidden>
+    <div class="modal-panel" role="dialog" aria-labelledby="browserTitle">
+      <div class="modal-head">
+        <h2 id="browserTitle" data-i18n="选择图库目录">选择图库目录</h2>
+        <button type="button" id="browserClose" class="icon-btn" aria-label="关闭" data-i18n-aria-label="关闭">×</button>
+      </div>
+      <p class="modal-hint" id="browserHint" data-i18n="从菜单选择常用位置，或输入完整目录；修改后自动检测。支持网络共享路径。">从菜单选择常用位置，或输入完整目录；修改后自动检测。支持网络共享路径。</p>
+      <div class="browser-path">
+        <div class="browser-places" id="browserPlaces">
+          <button type="button" id="browserPlacesBtn" aria-label="常用位置" data-i18n-aria-label="常用位置" aria-haspopup="menu" aria-expanded="false">▾</button>
+          <div id="browserPlacesMenu" class="browser-places-menu" role="menu" hidden></div>
+        </div>
+        <div class="browser-address">
+          <input id="browserPath" type="text" aria-label="目录地址" data-i18n-aria-label="目录地址" aria-describedby="browserHint browserError" placeholder="此电脑" data-i18n-placeholder="此电脑" autocomplete="off" spellcheck="false">
+          <span id="browserError" class="browser-address-status" role="status" aria-live="polite" hidden></span>
+        </div>
+        <button type="button" id="browserUp" aria-label="上一级" data-i18n-aria-label="上一级" title="上一级" data-i18n-title="上一级" disabled>
+          <svg class="lucide lucide-reply" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M9 17 4 12 9 7"></path>
+            <path d="M4 12h12a4 4 0 0 1 4 4v2"></path>
+          </svg>
+        </button>
+      </div>
+      <p id="browserMarkers" class="markers" hidden></p>
+      <ul id="browserList" class="dir-list" aria-label="目录列表" data-i18n-aria-label="目录列表"></ul>
+      <div class="browser-new">
+        <input id="browserNewName" type="text" maxlength="80" placeholder="新图库文件夹名" data-i18n-placeholder="新图库文件夹名" autocomplete="off">
+        <button type="button" id="browserCreate" disabled data-i18n="在此新建">在此新建</button>
+      </div>
+      <div class="modal-actions">
+        <button type="button" id="browserUse" class="primary" disabled data-i18n="使用此目录">使用此目录</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="tagDialog" class="modal" hidden>
+    <div class="modal-panel slim" role="dialog" aria-labelledby="tagDialogTitle">
+      <div class="modal-head">
+        <h2 id="tagDialogTitle" data-i18n="自定义标签">自定义标签</h2>
+        <button type="button" id="tagDialogClose" class="icon-btn" aria-label="关闭" data-i18n-aria-label="关闭">×</button>
+      </div>
+      <input id="tagDialogInput" type="text" maxlength="40" placeholder="标签名称" data-i18n-placeholder="标签名称" autocomplete="off">
+      <div class="modal-actions">
+        <button type="button" id="tagDialogOk" class="primary" data-i18n="添加并打上">添加并打上</button>
+      </div>
+    </div>
+  </div>
+
+  <dialog id="settingsDialog" class="settings-dialog" aria-labelledby="settingsTitle">
+    <header class="dialog-title"><h2 id="settingsTitle" data-i18n="设置">设置</h2><button id="settingsClose" type="button" class="icon-btn" aria-label="关闭设置" data-i18n-aria-label="关闭设置">×</button></header>
+    <section class="settings-section">
+      <h3 data-i18n="语言">语言</h3>
+      <label for="settingsLanguage" data-i18n="界面语言">界面语言</label>
+      <select id="settingsLanguage" data-language-select disabled>
+        <option value="auto" data-i18n="跟随系统">跟随系统</option><option value="zh-CN" lang="zh-CN">简体中文</option><option value="en" lang="en">English</option>
+      </select>
+      <p class="settings-hint" data-i18n="跟随系统时，中文系统使用中文，其他系统使用英语。切换后立即生效。">跟随系统时，中文系统使用中文，其他系统使用英语。切换后立即生效。</p>
+    </section>
+    <section class="settings-section">
+      <h3 data-i18n="播放与文件">播放与文件</h3>
+      <label for="playbackAccel" data-i18n="播放器解码 / 渲染策略">播放器解码 / 渲染策略</label>
+      <select id="playbackAccel" disabled>
+        <option value="auto" data-i18n="自动（推荐）">自动（推荐）</option>
+        <option value="gpu" data-i18n="GPU 优先（高性能适配器）">GPU 优先（高性能适配器）</option>
+        <option value="cpu" data-i18n="CPU 解码（保留 GPU 界面合成）">CPU 解码（保留 GPU 界面合成）</option>
+        <option value="compat" data-i18n="兼容模式（CPU 解码 + 软件渲染）">兼容模式（CPU 解码 + 软件渲染）</option>
+      </select>
+      <p id="playbackAccelHint" class="settings-hint" data-i18n="Windows 桌面版重启后生效，仅影响本地图库。兼容模式用于驱动异常排查，可能更耗 CPU。">Windows 桌面版重启后生效，仅影响本地图库。兼容模式用于驱动异常排查，可能更耗 CPU。</p>
+      <label class="settings-check"><input id="accelToggle" type="checkbox"><span data-i18n="硬件加速封面解码">硬件加速封面解码</span></label>
+      <label class="settings-row"><span data-i18n="封面解码后端">封面解码后端</span>
+        <select id="accelBackend" aria-label="封面解码后端" data-i18n-aria-label="封面解码后端">
+          <option value="auto" data-i18n="自动选择">自动选择</option>
+          <option value="cuda">NVIDIA CUDA / NVDEC</option>
+          <option value="d3d11va">Windows D3D11VA</option>
+          <option value="dxva2">Windows DXVA2</option>
+          <option value="qsv">Intel QSV</option>
+          <option value="vaapi">Linux VA-API</option>
+          <option value="videotoolbox">Apple VideoToolbox</option>
+        </select>
+      </label>
+      <p id="accelHint" class="settings-hint" data-i18n="仅控制 FFmpeg 封面抽帧；不改变系统 WebView2 的页面渲染。失败时回退 CPU。">仅控制 FFmpeg 封面抽帧；不改变系统 WebView2 的页面渲染。失败时回退 CPU。</p>
+      <label for="audioOutput" data-i18n="输出音频设备">输出音频设备</label>
+      <div class="settings-inline"><select id="audioOutput"><option value="" data-i18n="系统默认">系统默认</option></select><button id="audioAuthorize" type="button" hidden data-i18n="选择其他设备">选择其他设备</button></div>
+      <p id="audioHint" class="settings-hint" data-i18n="默认跟随系统输出设备。">默认跟随系统输出设备。</p>
+      <label for="saveDirectory" data-i18n="另存为目录">另存为目录</label>
+      <div class="settings-inline"><input id="saveDirectory" type="text" placeholder="默认：桌面" data-i18n-placeholder="默认：桌面" spellcheck="false"><button id="saveBrowse" type="button" data-i18n="选择目录">选择目录</button></div>
+      <p class="settings-hint" data-i18n="直接复制图库原文件，不重新下载、不移动原文件。同名自动编号，不覆盖。">直接复制图库原文件，不重新下载、不移动原文件。同名自动编号，不覆盖。</p>
+      <label class="settings-inline" for="wheelStep"><span data-i18n="滚轮音量步长">滚轮音量步长</span> <select id="wheelStep"><option value="1">1%</option><option value="2">2%</option><option value="5" selected>5%</option><option value="10">10%</option><option value="20">20%</option></select></label>
+    </section>
+    <section class="settings-section">
+      <h3 data-i18n="图库">图库</h3>
+      <p class="settings-hint" data-i18n="墙卡住、回收站刚恢复完，或刚在资源管理器改过文件时，重新读取当前图库。">墙卡住、回收站刚恢复完，或刚在资源管理器改过文件时，重新读取当前图库。</p>
+      <button type="button" id="libraryReload" data-i18n="重新加载图库">重新加载图库</button>
+    </section>
+    <section class="settings-section">
+      <h3 data-i18n="图库修复">图库修复</h3>
+      <p class="settings-hint" data-i18n="按同一对话后缀检查旧下载组，完整核对文件内容；不凭同名文件跨组清理。先预览再按选择执行，旧副本独立隔离到回收站，不给保留素材写删除标记。空目录不等于可安全删除，本操作不清理空目录。">按同一对话后缀检查旧下载组，完整核对文件内容；不凭同名文件跨组清理。先预览再按选择执行，旧副本独立隔离到回收站，不给保留素材写删除标记。空目录不等于可安全删除，本操作不清理空目录。</p>
+      <button type="button" id="dedupScan" data-i18n="检查重复组">检查重复组</button>
+    </section>
+    <section class="settings-section"><h3 data-i18n="快捷键">快捷键</h3><p class="settings-hint" data-i18n="点击键位框开始录制，松开全部按键后生效。Escape 取消。仅在应用获得焦点时工作。">点击键位框开始录制，松开全部按键后生效。Escape 取消。仅在应用获得焦点时工作。</p><div id="hotkeyList"></div></section>
+    <p id="settingsMessage" class="settings-error" role="status" aria-live="polite"></p>
+  </dialog>
+  <dialog id="saveDirDialog" class="settings-dialog directory-dialog" aria-labelledby="saveDirTitle">
+    <header class="dialog-title"><h2 id="saveDirTitle" data-i18n="选择另存为目录">选择另存为目录</h2><button id="saveDirClose" class="icon-btn" type="button" aria-label="关闭" data-i18n-aria-label="关闭">×</button></header>
+    <p id="saveDirPath" class="path-text"></p><p id="saveDirError" class="settings-error" role="status"></p><div id="saveDirList" class="settings-dir-list"></div>
+    <button id="saveDirUse" type="button" class="primary" data-i18n="使用此目录">使用此目录</button>
+  </dialog>
+  <dialog id="downloadDetails" class="settings-dialog failures-dialog" aria-labelledby="failureTitle">
+    <header class="dialog-title"><h2 id="failureTitle" data-i18n="下载失败详情">下载失败详情</h2><button id="failureClose" class="icon-btn" type="button" aria-label="关闭" data-i18n-aria-label="关闭">×</button></header>
+    <p id="failureSummary" class="settings-hint"></p><div id="failureList"></div>    <button id="failureCopy" type="button" data-i18n="复制脱敏诊断">复制脱敏诊断</button>
+  </dialog>
+  <dialog id="dedupDialog" class="settings-dialog failures-dialog" aria-labelledby="dedupTitle">
+    <header class="dialog-title"><h2 id="dedupTitle" data-i18n="重复组检查结果">重复组检查结果</h2><button id="dedupClose" class="icon-btn" type="button" aria-label="关闭" data-i18n-aria-label="关闭">×</button></header>
+    <p id="dedupSummary" class="settings-hint"></p>
+    <div id="dedupList"></div>
+    <button id="dedupApply" type="button" class="primary" data-i18n="按选择修复">按选择修复</button>
+  </dialog>
+  <div id="comboPreview" class="combo-preview" hidden>
+    <div class="cp-rail">
+      <button type="button" id="cpBack" class="cp-back" aria-label="返回" data-i18n-aria-label="返回">‹</button>
+      <button type="button" id="cpUp" class="cp-step" aria-label="组合内上一条" data-i18n-aria-label="组合内上一条" title="组合内上一条（↑）" data-i18n-title="组合内上一条（↑）" hidden>▲</button>
+      <aside id="cpFilm" class="cp-film" aria-label="组合媒体" data-i18n-aria-label="组合媒体"></aside>
+      <button type="button" id="cpDown" class="cp-step" aria-label="组合内下一条" data-i18n-aria-label="组合内下一条" title="组合内下一条（↓）" data-i18n-title="组合内下一条（↓）" hidden>▼</button>
+    </div>
+    <section id="cpStage" class="cp-stage">
+      <div id="cpMediaFrame" class="cp-media-frame">
+        <img id="cpImage" alt="当前图片" data-i18n-alt="当前图片">
+        <video id="cpVideo" playsinline></video>
+        <span id="cpDur" hidden></span>
+        <button type="button" id="cpFs" class="player-circle cp-fullscreen" title="画面全屏" data-i18n-title="画面全屏" aria-label="画面全屏" data-i18n-aria-label="画面全屏"></button>
+        <div id="cpScrubWrap" class="cp-scrub-wrap" hidden>
+          <div class="cp-control-row">
+            <button type="button" id="cpPlay" class="player-circle" title="播放／暂停" data-i18n-title="播放／暂停" aria-label="播放／暂停" data-i18n-aria-label="播放／暂停">▶</button>
+            <span id="cpClock" class="cp-clock">0:00 / 0:00</span>
+            <div id="cpVolumeBox" class="cp-volume-box">
+              <input id="cpVolume" type="range" min="0" max="100" step="1" value="100" aria-label="播放器音量" data-i18n-aria-label="播放器音量" tabindex="-1">
+              <button type="button" id="cpMute" class="player-circle" title="静音（M）" data-i18n-title="静音（M）" aria-label="静音开关" data-i18n-aria-label="静音开关">♪</button>
+            </div>
+          </div>
+          <div class="cp-scrub" id="cpScrub">
+            <div id="cpScrubAb" class="cp-scrub-ab" hidden></div><div id="cpScrubPlayed" class="cp-scrub-played"></div>
+            <span id="cpMarkA" class="cp-scrub-mark a" hidden>A</span><span id="cpMarkB" class="cp-scrub-mark b" hidden>B</span>
+            <input id="cpSeek" type="range" min="0" max="1000" value="0" step="1" aria-label="播放进度" data-i18n-aria-label="播放进度">
+            <div id="cpLoop" class="cp-loop" role="group" aria-label="A/B 循环" data-i18n-aria-label="A/B 循环" hidden>
+              <button type="button" id="cpLoopA" class="cp-loop-mark" title="设置 A 点" data-i18n-title="设置 A 点">A</button>
+              <button type="button" id="cpLoopB" class="cp-loop-mark" title="设置 B 点" data-i18n-title="设置 B 点">B</button>
+              <button type="button" id="cpLoopOn" class="cp-loop-icon" title="关闭循环" data-i18n-title="关闭循环" aria-label="关闭循环" data-i18n-aria-label="关闭循环" aria-pressed="true"></button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+    <button id="cpSideToggle" type="button" class="player-circle cp-side-toggle" aria-label="折叠／展开侧栏" data-i18n-aria-label="折叠／展开侧栏" aria-expanded="true"></button>
+    <aside id="cpSide" class="cp-side">
+      <div class="cp-description"><h1 id="cpTitle"></h1><div class="cp-meta-row"><span id="cpDate" class="muted"></span><span id="cpKind" class="kind"></span></div><p id="cpPrompt" class="prompt"></p></div>
+      <div class="cp-action-panel">
+        <p id="playerNotice" class="player-notice" role="status" aria-live="polite" hidden></p>
+        <div id="cpResWrap" class="cp-res-wrap" hidden>
+          <button type="button" id="cpRes" class="cp-action-wide" aria-haspopup="menu" aria-expanded="false" data-i18n="选择分辨率">选择分辨率</button>
+          <div id="cpResMenu" class="cp-res-menu" hidden></div>
+        </div>
+        <button type="button" id="cpPrevCombo" class="cp-action-wide" data-i18n="上一个组合">上一个组合</button>
+        <button type="button" id="cpNextCombo" class="cp-action-wide" data-i18n="下一个组合">下一个组合</button>
+        <button type="button" id="cpCopy" class="cp-action-wide" data-i18n="复制提示词">复制提示词</button>
+        <button type="button" id="cpOpenRemote" class="cp-action-wide cp-open-remote" data-i18n="在 X 打开">在 X 打开</button>
+        <div id="cpFlags" class="cp-flags" hidden>
+          <button type="button" id="cpHeart" class="heart player-circle" title="添加到收藏" data-i18n-title="添加到收藏" aria-label="喜欢" data-i18n-aria-label="喜欢"></button>
+          <button type="button" id="cpSave" class="player-circle" title="复制到另存为目录" data-i18n-title="复制到另存为目录" aria-label="另存为" data-i18n-aria-label="另存为"></button>
+          <div class="cp-more-wrap"><button type="button" id="cpMore" class="player-circle" title="更多选项" data-i18n-title="更多选项" aria-label="更多选项" data-i18n-aria-label="更多选项" aria-haspopup="menu" aria-expanded="false"></button>
+            <div id="cpMoreMenu" class="cp-more-menu" hidden>
+              <button type="button" id="cpAddTag" aria-expanded="false" data-i18n="添加到标签">添加到标签</button><div id="cpTagList" class="cp-tag-list" hidden></div>
+              <button type="button" id="cpDislike" class="cp-dislike" data-i18n="不喜欢">不喜欢</button><button type="button" id="cpDelete" class="danger" data-i18n="删除视频">删除视频</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </aside>
+  </div>
+
+  <div id="lightbox" class="lightbox" hidden>
+    <button type="button" id="lbClose" class="icon-btn lightbox-close" aria-label="关闭" data-i18n-aria-label="关闭">×</button>
+    <button type="button" id="lbPrev" class="nav-arrow left" aria-label="上一张" data-i18n-aria-label="上一张">‹</button>
+    <button type="button" id="lbNext" class="nav-arrow right" aria-label="下一张" data-i18n-aria-label="下一张">›</button>
+    <div class="lightbox-stage">
+      <img id="lbImage" alt="">
+      <video id="lbVideo" controls playsinline></video>
+    </div>
+    <div class="lightbox-meta">
+      <div class="lightbox-row">
+        <span id="lbKind" class="kind"></span>
+        <span id="lbDate" class="muted"></span>
+        <button type="button" id="lbCopy" data-i18n="复制提示词">复制提示词</button>
+      </div>
+      <p id="lbPrompt" class="prompt"></p>
+    </div>
+  </div>
+
+  <div id="ctxMenu" class="ctx-menu" hidden></div>
+
+  <script src="/static/player-settings.js"></script>
+  <script src="/static/environment.js"></script>
+  <script src="/static/app.js"></script>
+</body>
+</html>
