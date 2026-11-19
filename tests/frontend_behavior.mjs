@@ -545,12 +545,13 @@ check("AB capsule uses the measured time/mute gap center with CLEAR and repeat m
   assert.ok(html.indexOf('id="cpLoopA"') < html.indexOf('id="cpLoopB"') && html.indexOf('id="cpLoopB"') < html.indexOf('id="cpLoopOn"'), "capsule order must be A, B, loop");
   assert.ok(html.indexOf('id="cpScrub"') < html.indexOf('id="cpLoop"'), "loop capsule must belong to the seek hover/focus region");
   assert.ok(css.includes(".cp-scrub:hover .cp-loop, .cp-scrub:has(:focus-visible) .cp-loop"), "only seek hover or visible keyboard focus reveals the capsule");
-  assert.ok(css.includes("left: var(--loop-left, 50%)") && css.includes("translateX(-50%) scale(var(--loop-scale, 1))"), "capsule uses the measured label-gap center and its own scale");
+  assert.ok(css.includes("left: var(--loop-left, 50%)") && css.includes("transform: translateX(-50%)"), "capsule stays centered in the fitted control space");
   assert.ok(css.includes(".cp-loop::after"), "capsule must bridge the small gap to the seek hit region");
   assert.ok(!html.includes("id=\"cpLoopInfo\""), "capsule HTML must drop the status caption");
   assert.ok(!html.includes("<span>循环</span>"), "capsule must not keep the loop checkbox label");
   assert.ok(css.includes("--control-h: 42px"), "capsule must share the play and volume control height");
-  assert.ok(css.includes("background: rgba(20,19,17,.65)"), "capsule fill must match the volume chip");
+  assert.match(css, /#cpPlay, \.cp-volume-box, \.cp-loop\s*\{[^}]*backdrop-filter: blur\(36px\) saturate\(1\.6\);[^}]*box-shadow: var\(--cp-glass-rim\)/, "capsule shares the playback glass and rim");
+  assert.doesNotMatch(html, /cp-unmute-label/, "sound keeps its localized accessible name without a visible text prompt");
   assert.ok(css.includes(".cp-loop button.on { color: #fff; background: transparent; }"), "set A/B marks use light, not a tint");
   assert.ok(css.includes("button.cp-loop-icon.off"), "loop-off must dim the Lucide mark");
   assert.ok(css.includes("rgba(56,164,196,.5)"), "A/B range on the bar must be lake blue");

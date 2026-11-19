@@ -34,7 +34,7 @@ function fixture() {
   const scope = {
     $: id => nodes[id], document: { activeElement: null },
     currentPreviewItem: () => ({ media: "video" }),
-    paintStageDuration() {}, scheduleLoopLayout() {}, state: { preview: { open: true }, volume: { muted: false, level: 100 } },
+    paintStageDuration() {}, schedulePlayerControlLayout() {}, state: { preview: { open: true }, volume: { muted: false, level: 100 } },
     fmtDuration: value => String(value),
     repeatSvg: on => ({ kind: "repeat", on }),
     setStatus: message => errors.push(message),

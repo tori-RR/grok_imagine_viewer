@@ -159,92 +159,132 @@ function node() {
 
 {
   const css = readFileSync(new URL("../static/player.css", import.meta.url), "utf8");
-  assert.doesNotMatch(css, /@container\s*\(max-width:\s*560px\)/, "fixed video-width breakpoints must not override the measured label gap");
-  assert.match(css, /\.cp-loop\s*\{[^}]*left: var\(--loop-left, 50%\);[^}]*translateX\(-50%\) scale\(var\(--loop-scale, 1\)\)/);
-  assert.match(css, /\.cp-loop\.raised\s*\{[^}]*bottom:\s*calc\(100% \+ var\(--control-h\) \+ 6px\)/);
-  assert.match(css, /\.cp-loop::after\s*\{[^}]*height:\s*var\(--loop-bridge, 8px\)/);
-  for (const selector of ["cp-clock", "player-circle", "cp-volume-box"]) {
-    const rule = css.match(new RegExp("\\." + selector + "\\s*\\{([^}]+)\\}"));
-    assert.ok(rule);
-    assert.doesNotMatch(rule[1], /--loop-scale|scale\(/, "only the AB capsule may shrink, not " + selector);
-  }
+  assert.match(css, /\.cp-scrub-wrap\s*\{[^}]*transform: scale\(var\(--cp-controls-scale, 1\)\)/);
+  assert.match(css, /\.cp-clock\s*\{[^}]*flex: none;[^}]*width: max-content;/, "preserve the natural width of the entire timecode");
+  assert.match(css, /\.cp-loop\.raised::after\s*\{[^}]*height:\s*calc\(var\(--control-h\) \+ 12px\)/);
   assert.match(css, /\.cp-scrub:has\(:focus-visible\) \.cp-loop/);
   assert.doesNotMatch(css, /\.cp-scrub:focus-within \.cp-loop/, "mouse-click focus must not pin the capsule after pointer exit");
-  console.log("ok  scaling is restricted to the AB capsule and retains pointer/focus access");
+  console.log("ok  controls share a single scale and the raised A/B capsule retains hover and focus access");
 }
 
 {
-  const fit = new Function(`${extract("loopCapsuleFit")}; return loopCapsuleFit;`)();
-  const base = { trackLeft: 0, trackRight: 347, timeRight: 145, muteLeft: 305, volumeLeft: 305, naturalWidth: 120, controlHeight: 42 };
+  const fit = new Function(`${extract("playerControlFit")}; return playerControlFit;`)();
+  const base = { frameWidth: 371, frameHeight: 557, inset: 16, gap: 8, playWidth: 36, clockWidth: 105,
+    muteWidth: 36, volumeWidth: 36, loopWidth: 126, inlineHeight: 136, raisedHeight: 186 };
   const portrait = fit(base);
-  assert.equal(portrait.left, 225, "the 371px portrait frame uses the label-gap midpoint, not seek midpoint 173.5");
+  assert.equal(portrait.left, 226, "center the capsule between the timecode and the sound button");
   assert.equal(portrait.scale, 1);
   assert.equal(portrait.raised, false);
-  const wide = fit({ ...base, trackRight: 900, muteLeft: 858, volumeLeft: 858 });
-  assert.equal(wide.scale, 1);
-  let previous = 1;
-  for (const muteLeft of [305, 290, 280, 275, 270, 265, 263]) {
-    const value = fit({ ...base, muteLeft, volumeLeft: muteLeft });
-    assert.ok(value.scale <= previous && value.scale >= 0.85);
-    assert.equal(value.raised, false);
-    assert.equal(value.left, (145 + muteLeft) / 2);
-    assert.ok(Math.abs(value.bridgeHeight * value.scale - 8) < 0.00001);
-    previous = value.scale;
-  }
-  const narrow = fit({ ...base, muteLeft: 260, volumeLeft: 260 });
-  assert.equal(narrow.scale, 0.85);
+  assert.equal(fit({...base, frameWidth: 359}).scale, 1, "keep the original size up to first contact");
+  assert.equal(fit({...base, frameWidth: 320}).scale, 320 / 359);
+  assert.equal(fit({...base, frameWidth: 280}).scale, 0.85);
+  const narrow = fit({ ...base, frameWidth: 176 });
+  assert.equal(narrow.scale, 176 / 225);
   assert.equal(narrow.raised, true);
-  assert.ok(Math.abs(narrow.bridgeHeight * narrow.scale - 54) < 0.00001, "the scaled bridge still spans the complete lifted-row gap");
-  const volume = fit({ ...base, volumeLeft: 200 });
+  assert.ok(narrow.left + base.loopWidth / 2 <= 176 / narrow.scale - 2 * base.inset + 0.001);
+  const volume = fit({ ...base, volumeWidth: 150 });
   assert.equal(volume.left, portrait.left, "expanded volume must not change the requested clock/mute midpoint");
   assert.equal(volume.raised, true);
-  assert.equal(fit({ ...base, naturalWidth: 0 }), null);
-  assert.equal(fit({ ...base, timeRight: NaN }), null);
-  console.log("ok  AB fit smoothly scales within the measured label gap and lifts only below its readable floor");
+  assert.equal(fit({...base, frameWidth: 176, clockWidth: 165}).scale, 176 / 285, "hour-length timecodes take part in the fit");
+  assert.equal(fit({...base, frameWidth: 185, frameHeight: 90}).raised, false, "short landscape frames can fit better on one row");
+  assert.equal(fit({ ...base, loopWidth: 0 }), null);
+  assert.equal(fit({ ...base, frameWidth: NaN }), null);
+  console.log("ok  the fitted timecode, slider and A/B capsule share one scale in narrow or short frames");
 }
 
 {
-  const ids = ["cpMediaFrame", "cpScrub", "cpClock", "cpMute", "cpVolumeBox", "cpLoop"];
+  const ids = ["cpMediaFrame", "cpScrubWrap", "cpScrub", "cpPlay", "cpClock", "cpMute", "cpVolumeBox", "cpLoop", "cpFs"];
   const nodes = Object.fromEntries(ids.map(id => [id, node()]));
-  let muteLeft = 275;
-  nodes.cpScrub.getBoundingClientRect = () => ({ left: 0, right: 400 });
-  nodes.cpClock.getBoundingClientRect = () => ({ right: 145 });
-  nodes.cpMute.getBoundingClientRect = () => ({ left: muteLeft });
-  nodes.cpVolumeBox.getBoundingClientRect = () => ({ left: muteLeft });
-  nodes.cpLoop.offsetWidth = 120; nodes.cpLoop.offsetHeight = 42;
+  let width = 320;
+  nodes.cpMediaFrame.getBoundingClientRect = () => ({ width, height: 480 });
+  nodes.cpScrub.offsetHeight = nodes.cpScrubWrap.offsetHeight = 32;
+  nodes.cpClock.offsetWidth = 105;
+  nodes.cpClock.parentElement = {offsetTop: -39};
+  nodes.cpPlay.offsetWidth = nodes.cpMute.offsetWidth = nodes.cpVolumeBox.offsetWidth = 36;
+  nodes.cpLoop.offsetWidth = 126; nodes.cpLoop.offsetHeight = nodes.cpFs.offsetHeight = 42;
   let raised = false, resize, frame = null, queued = 0;
   nodes.cpLoop.classList.toggle = (name, value) => { if (name === "raised") raised = value; };
-  const observed = [], events = {};
+  const observed = [];
   const scope = {
     $: id => nodes[id], requestAnimationFrame(fn) { frame = fn; queued++; return queued; },
     ResizeObserver: class { constructor(fn) { resize = fn; } observe(node) { observed.push(node); } },
-    window: { addEventListener(type, fn) { events[type] = fn; } },
+    getComputedStyle: () => ({ getPropertyValue: key => ({"--cp-inset": "16px", "--cp-gap": "8px", "--cp-fullscreen-inset": "12px"})[key] }),
   };
   const controller = new Function(...Object.keys(scope), `
-    let loopLayoutFrame = 0;
-    ${["loopCapsuleFit", "scheduleLoopLayout", "bindLoopLayout"].map(name => extract(name)).join("\n")}
-    bindLoopLayout(); return { scheduleLoopLayout };
+    let playerControlLayoutFrame = 0;
+    ${["playerControlFit", "schedulePlayerControlLayout", "bindPlayerControlLayout"].map(name => extract(name)).join("\n")}
+    bindPlayerControlLayout(); return { schedulePlayerControlLayout };
   `)(...Object.values(scope));
   assert.equal(observed.length, 6);
-  controller.scheduleLoopLayout(); resize();
+  controller.schedulePlayerControlLayout(); resize();
   assert.equal(queued, 1, "multiple layout sources in one frame must coalesce");
   frame();
-  assert.equal(Number(nodes.cpLoop.style["--loop-scale"]), 0.95);
+  assert.equal(Number(nodes.cpMediaFrame.style["--cp-controls-scale"]), 320 / 359);
   assert.equal(raised, false);
-  nodes.cpLoop.offsetWidth = 140; // CLEAR can be wider than the repeat icon.
+  nodes.cpLoop.offsetWidth = 160; // A wider CLEAR action consumes more of the row.
   resize(); frame();
-  assert.equal(Number(nodes.cpLoop.style["--loop-scale"]), 0.85);
+  assert.equal(Number(nodes.cpMediaFrame.style["--cp-controls-scale"]), 0.85);
   assert.equal(raised, true);
-  muteLeft = 500; nodes.cpScrub.getBoundingClientRect = () => ({ left: 0, right: 550 });
-  events.resize(); frame();
-  assert.equal(Number(nodes.cpLoop.style["--loop-scale"]), 1);
-  assert.equal(nodes.cpLoop.style["--loop-left"], "322.5px");
+  width = 600;
+  resize(); frame();
+  assert.equal(Number(nodes.cpMediaFrame.style["--cp-controls-scale"]), 1);
+  assert.equal(nodes.cpLoop.style["--loop-left"], "340.5px");
   assert.equal(raised, false);
-  for (const id of ids.filter(id => id !== "cpLoop")) assert.deepEqual(Object.keys(nodes[id].style), ["setProperty"], "other control sizes must remain untouched");
-  assert.match(extract("paintLoopBar"), /scheduleLoopLayout\(\)/, "AB/CLEAR changes must explicitly refresh fit");
-  assert.doesNotMatch(extract("paintScrub"), /scheduleLoopLayout|getBoundingClientRect/, "timeupdate rendering must not force layout measurements");
-  assert.match(extract("bind"), /bindLoopLayout\(\)/);
-  console.log("ok  AB natural-width changes and frame resize refit once per frame without measuring timeupdate");
+  assert.match(extract("paintLoopBar"), /schedulePlayerControlLayout\(\)/, "AB/CLEAR changes must explicitly refresh fit");
+  assert.doesNotMatch(extract("paintScrub"), /schedulePlayerControlLayout|getBoundingClientRect/, "timeupdate rendering must not force layout measurements");
+  assert.match(extract("bind"), /bindPlayerControlLayout\(\)/);
+  console.log("ok  intrinsic control widths and media resize refit once per frame without measuring timeupdate");
+}
+
+{
+  const frame = node(), video = node(), seek = node(), played = node();
+  const window = node(), document = node(), touch = node();
+  let hovered = true, pendingFrames = 0, plays = 0;
+  frame.matches = () => hovered;
+  const classes = new Set();
+  frame.classList = {add: name => classes.add(name), remove: name => classes.delete(name)};
+  Object.assign(video, {
+    paused: false, readyState: 4, duration: 10, currentTime: 3,
+    pause() { this.paused = true; this.emit("pause"); },
+    async play() { plays++; this.paused = false; this.emit("playing"); },
+  });
+  const nodes = {cpMediaFrame: frame, cpVideo: video, cpSeek: seek, cpScrubPlayed: played};
+  const scope = {
+    $: id => nodes[id], window, document, matchMedia: () => touch, state: {preview: {open: true}},
+    pct: (time, duration) => 100 * time / duration, videoDuration: () => video.duration, paintScrub() {},
+    requestAnimationFrame() { pendingFrames++; return 1; }, cancelAnimationFrame() { pendingFrames--; },
+  };
+  const switchClip = new Function(...Object.keys(scope), `
+    let previewMediaLoad = {};
+    ${extract("bindPreviewScrubber")}
+    bindPreviewScrubber();
+    return () => { previewMediaLoad = {}; };
+  `)(...Object.values(scope));
+  video.emit("playing");
+  assert.equal(pendingFrames, 1);
+  assert.equal(played.style.width, "30%");
+  hovered = false;
+  frame.emit("mouseleave");
+  await Promise.resolve();
+  assert.equal(pendingFrames, 0, "an invisible seek bar must stop scheduling frames");
+
+  const pointer = {isPrimary: true, button: 0, pointerId: 1};
+  seek.emit("pointerdown", pointer);
+  window.emit("pointerup", {pointerId: 2});
+  assert.equal(video.paused, true, "another pointer must not end this drag");
+  switchClip();
+  window.emit("pointerup", pointer);
+  assert.equal(plays, 0, "a release from the previous clip must not start this clip");
+  assert.equal(classes.has("control-drag"), false);
+  video.paused = false;
+  seek.emit("pointerdown", pointer);
+  window.emit("pointercancel", pointer);
+  assert.equal(plays, 1, "an interrupted drag on the same playing clip restores playback");
+  video.pause();
+  seek.emit("pointerdown", pointer);
+  window.emit("pointerup", pointer);
+  assert.equal(plays, 1, "a clip that started paused stays paused");
+  console.log("ok  preview scrubbing restores playback only for the original clip and animates visible progress");
 }
 
 console.log("Player layout and launcher behavior tests passed");

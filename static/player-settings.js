@@ -772,10 +772,9 @@
     $("cpVolumeBox").addEventListener("focusin", () => showVolume(false));
     $("cpVolumeBox").addEventListener("focusout", () => setTimeout(fadeVolume, 0));
     $("cpVolume").addEventListener("pointerdown", () => { volumeDrag = true; showVolume(false); });
-    window.addEventListener("pointerup", () => { volumeDrag = false; fadeVolume(); $("cpMediaFrame").classList.remove("control-drag"); });
-    window.addEventListener("pointercancel", () => { volumeDrag = false; fadeVolume(); $("cpMediaFrame").classList.remove("control-drag"); });
+    window.addEventListener("pointerup", () => { volumeDrag = false; fadeVolume(); });
+    window.addEventListener("pointercancel", () => { volumeDrag = false; fadeVolume(); });
     $("cpVolume").addEventListener("input", ev => { adapter.setVolume({level: Number(ev.target.value), muted: false}); showVolume(true); });
-    $("cpSeek").addEventListener("pointerdown", () => $("cpMediaFrame").classList.add("control-drag"));
     $("cpMediaFrame").addEventListener("wheel", ev => {
       if (!adapter.previewOpen() || ev.ctrlKey || document.querySelector("dialog[open]")) return;
       if (!ev.deltaY) return; ev.preventDefault(); ev.stopPropagation();
@@ -789,7 +788,7 @@
     document.addEventListener("fullscreenchange", layout);
     window.addEventListener("resize", layout);
     window.addEventListener("keyup", ev => { if (!recordKey(ev, false)) held.delete(ev.code); }, true);
-    window.addEventListener("blur", () => { cancelRecord(); volumeDrag = false; fadeVolume(); $("cpMediaFrame").classList.remove("control-drag"); });
+    window.addEventListener("blur", () => { cancelRecord(); volumeDrag = false; fadeVolume(); });
     $("dlDetails").addEventListener("click", () => { drawFailures(); $("downloadDetails").showModal(); });
     $("failureClose").addEventListener("click", () => $("downloadDetails").close());
     $("failureCopy").addEventListener("click", async () => {

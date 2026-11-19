@@ -1704,6 +1704,9 @@
     btn.replaceChildren(speakerSvg(silent));
     btn.classList.toggle("muted", silent);
     btn.title = vol.muted ? t("取消静音") : t("静音");
+    $("cpMuteIcon").classList.toggle("is-silent", silent);
+    $("cpVolumeBox").classList.toggle("is-muted", vol.muted);
+    $("cpMute").setAttribute("aria-label", btn.title);
     if (playerUI) playerUI.updateVolume();
   }
 
@@ -4214,7 +4217,7 @@
     const dur = videoDuration();
     const currentTime = Number(video.currentTime) || 0;
     const seek = $("cpSeek");
-    if (seek && dur > 0 && document.activeElement !== seek) {
+    if (seek && dur > 0 && !$("cpMediaFrame").classList.contains("control-drag")) {
       seek.value = String(Math.round((currentTime / dur) * 1000));
     }
     const played = $("cpScrubPlayed");
@@ -4242,16 +4245,12 @@
     placeMark($("cpMarkA"), abLoop.a);
     placeMark($("cpMarkB"), abLoop.b);
     const clock = $("cpClock");
-    if (clock) clock.textContent = (fmtDuration(currentTime) || "0:00") + " / " + (fmtDuration(dur) || "0:00");
+    if (clock) clock.textContent = (fmtDuration(Math.floor(currentTime)) || "0:00") + " / " + (fmtDuration(Math.floor(dur)) || "0:00");
     const play = $("cpPlay");
-    if (play) play.textContent = video.paused ? "▶" : "❚❚";
-    const mute = $("cpMute");
-    if (mute) {
-      const silent = state.volume.muted || state.volume.level === 0;
-      mute.replaceChildren(speakerSvg(silent));
-      mute.setAttribute("aria-label", silent ? t("取消静音") : t("静音"));
+    if (play) {
+      play.classList.toggle("is-playing", !video.paused);
+      play.setAttribute("aria-label", video.paused ? t("播放") : t("暂停"));
     }
-    if (play) play.setAttribute("aria-label", video.paused ? t("播放") : t("暂停"));
   }
 
   function togglePreviewPlay() {
@@ -4265,6 +4264,59 @@
       video.pause();
     }
     paintScrub();
+  }
+
+  function bindPreviewScrubber() {
+    const frame = $("cpMediaFrame");
+    const video = $("cpVideo");
+    const seek = $("cpSeek");
+    const played = $("cpScrubPlayed");
+    const touch = matchMedia("(hover: none)");
+    let drag = null;
+    let progressFrame = 0;
+
+    // Only the visible fill needs frame-rate updates. Timecode and loop points use media events.
+    function advanceFill() {
+      played.style.width = pct(video.currentTime, video.duration) + "%";
+      progressFrame = requestAnimationFrame(advanceFill);
+    }
+    function syncFill() {
+      const visible = state.preview.open && !document.hidden && !video.paused && video.readyState >= 2 &&
+        (touch.matches || frame.matches(":hover, :has(:focus-visible)"));
+      if (visible && !progressFrame) advanceFill();
+      if (!visible && progressFrame) {
+        cancelAnimationFrame(progressFrame);
+        progressFrame = 0;
+      }
+    }
+    for (const name of ["mouseenter", "mouseleave", "focusin", "focusout"]) {
+      frame.addEventListener(name, () => queueMicrotask(syncFill));
+    }
+    for (const name of ["playing", "pause", "ended", "emptied"]) video.addEventListener(name, syncFill);
+    touch.addEventListener("change", syncFill);
+    document.addEventListener("visibilitychange", syncFill);
+
+    seek.addEventListener("pointerdown", ev => {
+      if (!ev.isPrimary || ev.button !== 0 || !videoDuration()) return;
+      drag = { pointerId: ev.pointerId, load: previewMediaLoad, wasPlaying: !video.paused };
+      frame.classList.add("control-drag");
+      if (drag.wasPlaying) video.pause();
+    });
+    seek.addEventListener("input", () => {
+      const duration = videoDuration();
+      if (!duration) return;
+      video.currentTime = (Number(seek.value) / 1000) * duration;
+      paintScrub();
+    });
+    function finishDrag(ev) {
+      if (!drag || (ev.pointerId != null && ev.pointerId !== drag.pointerId)) return;
+      const resume = drag.wasPlaying && drag.load === previewMediaLoad && state.preview.open && ev.type !== "emptied";
+      drag = null;
+      frame.classList.remove("control-drag");
+      if (resume) void video.play().catch(() => {});
+    }
+    for (const name of ["pointerup", "pointercancel", "blur"]) window.addEventListener(name, finishDrag);
+    video.addEventListener("emptied", finishDrag);
   }
 
   function seekPreview(delta) {
@@ -4353,57 +4405,63 @@
     });
   }
 
-  function loopCapsuleFit(metrics) {
-    const { trackLeft, trackRight, timeRight, muteLeft, volumeLeft, naturalWidth, controlHeight } = metrics;
-    if (![trackLeft, trackRight, timeRight, muteLeft, volumeLeft, naturalWidth, controlHeight].every(Number.isFinite)
-        || trackRight <= trackLeft || naturalWidth <= 0 || controlHeight <= 0) return null;
-    const center = (timeRight + muteLeft) / 2;
-    const gap = 8;
-    // The label gap owns the center, even when an expanded volume slider
-    // temporarily occupies part of it. In that case lift instead of covering it.
-    const leftEdge = Math.max(trackLeft, timeRight);
-    const rightEdge = Math.min(trackRight, muteLeft, volumeLeft);
-    const room = 2 * Math.max(0, Math.min(center - leftEdge - gap, rightEdge - center - gap));
-    const minScale = 0.85;
-    const scale = Math.max(minScale, Math.min(1, room / naturalWidth));
-    const raised = room < naturalWidth * minScale;
-    return { left: center - trackLeft, scale: scale, raised: raised,
-      bridgeHeight: (raised ? controlHeight + 12 : 8) / scale };
+  function playerControlFit(metrics) {
+    const { frameWidth, frameHeight, inset, gap, playWidth, clockWidth, muteWidth, volumeWidth, loopWidth, inlineHeight, raisedHeight } = metrics;
+    if (![frameWidth, frameHeight, playWidth, clockWidth, muteWidth, volumeWidth, loopWidth, inlineHeight, raisedHeight].every(n => Number.isFinite(n) && n > 0)
+        || ![inset, gap].every(n => Number.isFinite(n) && n >= 0)) return null;
+    const timeRight = playWidth + gap + clockWidth;
+    const inlineWidth = 2 * inset + timeRight + gap + loopWidth + gap + muteWidth;
+    const raisedWidth = 2 * inset + Math.max(loopWidth, timeRight + gap + volumeWidth);
+    // The capsule is centered between the clock and the mute icon, so an open
+    // slider needs matching clearance on both sides of that center.
+    const sliderWidth = volumeWidth - muteWidth;
+    const inlineScale = Math.min(1, frameWidth / (inlineWidth + 2 * sliderWidth), frameHeight / inlineHeight);
+    // Keep a lifted capsule readable in portrait without making controls grow
+    // as the window shrinks. Short landscape frames can fit better on one row.
+    const raisedLimit = Math.max(0.85, frameWidth / inlineWidth);
+    const raisedScale = Math.min(1, raisedLimit, frameWidth / raisedWidth, frameHeight / raisedHeight);
+    const scale = Math.max(inlineScale, raisedScale);
+    const trackWidth = frameWidth / scale - 2 * inset;
+    const center = (timeRight + trackWidth - muteWidth) / 2;
+    const halfLoop = loopWidth / 2;
+    return { scale, raised: raisedScale > inlineScale, left: Math.max(halfLoop, Math.min(center, trackWidth - halfLoop)) };
   }
 
-  let loopLayoutFrame = 0;
-  function scheduleLoopLayout() {
-    if (loopLayoutFrame) return;
-    loopLayoutFrame = requestAnimationFrame(() => {
-      loopLayoutFrame = 0;
-      const bar = $("cpLoop"), track = $("cpScrub"), clock = $("cpClock"), mute = $("cpMute"), volume = $("cpVolumeBox");
-      if (!bar || bar.hidden || !track || !clock || !mute || !volume) return;
-      const trackRect = track.getBoundingClientRect();
-      const fit = loopCapsuleFit({ trackLeft: trackRect.left, trackRight: trackRect.right,
-        timeRight: clock.getBoundingClientRect().right, muteLeft: mute.getBoundingClientRect().left,
-        volumeLeft: volume.getBoundingClientRect().left, naturalWidth: bar.offsetWidth, controlHeight: bar.offsetHeight });
+  let playerControlLayoutFrame = 0;
+  function schedulePlayerControlLayout() {
+    if (playerControlLayoutFrame) return;
+    playerControlLayoutFrame = requestAnimationFrame(() => {
+      playerControlLayoutFrame = 0;
+      const frame = $("cpMediaFrame"), loop = $("cpLoop");
+      if (loop.hidden) return;
+      const wrap = $("cpScrubWrap"), track = $("cpScrub");
+      const styles = getComputedStyle(wrap);
+      const bounds = frame.getBoundingClientRect();
+      const gap = parseFloat(styles.getPropertyValue("--cp-gap"));
+      const topSpace = $("cpFs").offsetHeight + parseFloat(styles.getPropertyValue("--cp-fullscreen-inset")) + gap;
+      const rowTop = wrap.offsetHeight - $("cpClock").parentElement.offsetTop;
+      // offsetWidth is intrinsic here: these controls do not flex-shrink and
+      // their common transform never feeds scaled text widths back into the fit.
+      const fit = playerControlFit({
+        frameWidth: bounds.width, frameHeight: bounds.height, inset: parseFloat(styles.getPropertyValue("--cp-inset")), gap,
+        playWidth: $("cpPlay").offsetWidth, clockWidth: $("cpClock").offsetWidth,
+        muteWidth: $("cpMute").offsetWidth, volumeWidth: $("cpVolumeBox").offsetWidth, loopWidth: loop.offsetWidth,
+        inlineHeight: topSpace + Math.max(rowTop, track.offsetHeight + loop.offsetHeight),
+        raisedHeight: topSpace + Math.max(rowTop, track.offsetHeight + 2 * loop.offsetHeight + gap),
+      });
       if (!fit) return;
-      // offsetWidth/Height are the natural layout size, unaffected by our scale.
-      bar.style.setProperty("--loop-left", fit.left + "px");
-      bar.style.setProperty("--loop-scale", String(fit.scale));
-      bar.style.setProperty("--loop-bridge", fit.bridgeHeight + "px");
-      bar.classList.toggle("raised", fit.raised);
+      frame.style.setProperty("--cp-controls-scale", String(fit.scale));
+      loop.style.setProperty("--loop-left", fit.left + "px");
+      loop.classList.toggle("raised", fit.raised);
     });
   }
 
-  function bindLoopLayout() {
-    // Follow the frame dimensions produced by the player's existing layout
-    // observer. Also watch intrinsic control widths (clock digits / CLEAR /
-    // volume expansion); never measure layout from the timeupdate handler.
-    if (typeof ResizeObserver === "function") {
-      const observer = new ResizeObserver(scheduleLoopLayout);
-      ["cpMediaFrame", "cpScrub", "cpClock", "cpMute", "cpVolumeBox", "cpLoop"].forEach(id => {
-        const node = $(id);
-        if (node) observer.observe(node);
-      });
+  function bindPlayerControlLayout() {
+    const observer = new ResizeObserver(schedulePlayerControlLayout);
+    for (const id of ["cpMediaFrame", "cpPlay", "cpClock", "cpMute", "cpVolumeBox", "cpLoop"]) {
+      observer.observe($(id));
     }
-    window.addEventListener("resize", scheduleLoopLayout);
-    scheduleLoopLayout();
+    schedulePlayerControlLayout();
   }
 
   function paintLoopBar() {
@@ -4428,7 +4486,7 @@
       toggle.title = loopStateText() + "；" + action;
     }
     paintLoopPointButtons();
-    scheduleLoopLayout();
+    schedulePlayerControlLayout();
   }
 
   function fmtClock(seconds) {
@@ -5769,7 +5827,7 @@
     window.addEventListener("blur", stopHoverVideo);
     document.addEventListener("visibilitychange", () => { if (document.hidden) stopHoverVideo(); });
     bindPlusMenu();
-    bindLoopLayout();
+    bindPlayerControlLayout();
     $("modeGrok").addEventListener("click", () => setMode("grok"));
     $("modeGallery").addEventListener("click", () => setMode("gallery"));
     if ($("grokGuestOpen")) {
@@ -6020,10 +6078,7 @@
     });
     $("cpMute").addEventListener("click", (ev) => {
       ev.stopPropagation();
-      const video = $("cpVideo");
-      if (!video) return;
       setVolume({muted: !state.volume.muted});
-      paintScrub();
     });
     $("cpFs").addEventListener("click", (ev) => {
       ev.stopPropagation();
@@ -6032,13 +6087,7 @@
       if (document.fullscreenElement) document.exitFullscreen();
       else if (stage.requestFullscreen) stage.requestFullscreen();
     });
-    $("cpSeek").addEventListener("input", (ev) => {
-      const video = $("cpVideo");
-      const dur = videoDuration();
-      if (!video || !(dur > 0)) return;
-      video.currentTime = (Number(ev.target.value) / 1000) * dur;
-      paintScrub();
-    });
+    bindPreviewScrubber();
     $("cpScrubWrap").addEventListener("click", (ev) => ev.stopPropagation());
     const previewCtx = (ev) => {
       const item = currentPreviewItem();
@@ -6197,7 +6246,7 @@
     if (window.GivPlayer) {
       playerUI = window.GivPlayer.create({
         api: api, status: setStatus, volume: () => state.volume,
-        setVolume: patch => { setVolume(patch); paintScrub(); },
+        setVolume,
         item: currentPreviewItem, previewOpen: () => state.preview.open,
         mode: () => state.mode, root: () => state.root,
         downloadBusy: () => dlBusy || dlStopping, downloadRun: () => dlRunSeen,

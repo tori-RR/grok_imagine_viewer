@@ -128,15 +128,42 @@ console.log("ok  Chinese locales select Chinese; every other primary language se
   const scanner = harness.slice(harness.indexOf("const REGEX_PRECEDERS"), harness.indexOf("const failures"));
   const extract = new Function("assert", "source", scanner + "\nreturn extract;")(assert, read("static/app.js"));
   const nodes = new Proxy({}, {get(target, key) {
-    return target[key] ||= {style: {}, attrs: {}, replaceChildren() {}, setAttribute(name, value) { this.attrs[name] = value; }};
+    if (target[key]) return target[key];
+    const classes = new Set();
+    return target[key] = {
+      style: {}, attrs: {},
+      replaceChildren(icon) { this.icon = icon; },
+      setAttribute(name, value) { this.attrs[name] = value; },
+      classList: { contains: name => classes.has(name), toggle: (name, on) => on ? classes.add(name) : classes.delete(name) },
+    };
   }});
-  Object.assign(nodes.cpVideo, {currentTime: 4, paused: true});
+  Object.assign(nodes.cpVideo, {currentTime: 4.8, paused: true});
+  const volume = {muted: false, level: 50};
   const scope = {$: id => nodes[id], currentPreviewItem: () => ({media: "video"}), paintStageDuration() {}, paintLoopPointButtons() {}, videoDuration: () => 10,
     document: {activeElement: null}, pct: (n, total) => 100 * n / total, loopOn: false, loopRange: () => null, abLoop: {a: null, b: null},
-    fmtDuration: n => String(n), state: {volume: {muted: false, level: 50}}, speakerSvg() {}, t: i18n.t};
-  new Function(...Object.keys(scope), extract("paintScrub") + "\npaintScrub();")(...Object.values(scope));
+    fmtDuration: n => String(n), state: {volume}, playerUI: null, speakerSvg: silent => ({silent}), t: i18n.t};
+  const {paintScrub, paintVolume} = new Function(...Object.keys(scope),
+    `${extract("paintScrub")}\n${extract("paintVolume")}\nreturn {paintScrub, paintVolume};`)(...Object.values(scope));
+  paintScrub();
+  paintVolume();
   assert.equal(nodes.cpPlay.attrs["aria-label"], "Play");
   assert.equal(nodes.cpMute.attrs["aria-label"], "Mute");
-  assert.equal(nodes.cpSeek.value, "400");
-  console.log("ok  player time updates and translated controls coexist without shadowing the translator");
+  assert.equal(nodes.cpSeek.value, "480");
+  assert.equal(nodes.cpClock.textContent, "4 / 10", "the clock shows elapsed whole seconds");
+  assert.equal(nodes.cpVolumeBox.classList.contains("is-muted"), false);
+  volume.muted = true;
+  paintVolume();
+  assert.equal(nodes.cpMute.attrs["aria-label"], "Unmute");
+  assert.equal(nodes.cpVolumeBox.classList.contains("is-muted"), true);
+  nodes.cpVideo.paused = false;
+  paintScrub();
+  assert.equal(nodes.cpPlay.attrs["aria-label"], "Pause");
+  assert.equal(nodes.cpPlay.classList.contains("is-playing"), true);
+  assert.equal(nodes.cpMuteIcon.classList.contains("is-silent"), true, "time updates preserve the mute icon state");
+  Object.assign(volume, {muted: false, level: 0});
+  paintVolume();
+  assert.equal(nodes.cpVolumeBox.classList.contains("is-muted"), false, "zero volume is controlled by the slider");
+  assert.equal(nodes.cpMuteIcon.classList.contains("is-silent"), true);
+  assert.equal(nodes.cpMute.attrs["aria-label"], "Mute");
+  console.log("ok  translated playback and unmute actions update with the player state");
 }
